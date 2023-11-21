@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/tsaron/anansi/tokens"
+	"github.com/noxecane/anansi/tokens"
 	"golang.org/x/crypto/bcrypt"
 	"tsaron.com/godview-starter/pkg/notification"
 )
@@ -37,7 +37,7 @@ func ValidatePassword(password string, hash []byte) error {
 	return nil
 }
 
-func NewResetToken(ctx context.Context, tStore *tokens.Store, user *User) (ResetToken, error) {
+func NewResetToken(ctx context.Context, tStore tokens.Store, user *User) (ResetToken, error) {
 	rToken := ResetToken{User: user.ID, Workspace: user.Workspace}
 
 	var err error

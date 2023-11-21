@@ -6,16 +6,16 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/go-chi/chi"
-	"github.com/go-pg/pg/v10"
-	"github.com/go-redis/redis/v8"
-	"github.com/tsaron/anansi"
-	"github.com/tsaron/anansi/middleware"
-	"github.com/tsaron/anansi/tokens"
+	"github.com/go-chi/chi/v5"
+	"github.com/noxecane/anansi"
+	"github.com/noxecane/anansi/sessions"
+	"github.com/noxecane/anansi/tokens"
+	"github.com/noxecane/anansi/webpack"
+	"github.com/redis/go-redis/v9"
+	"github.com/uptrace/bun"
 	"tsaron.com/godview-starter/pkg/config"
 	"tsaron.com/godview-starter/pkg/notification"
 	"tsaron.com/godview-starter/pkg/rest"
-	"tsaron.com/godview-starter/pkg/sessions"
 	"tsaron.com/godview-starter/pkg/workspaces"
 )
 
@@ -33,8 +33,8 @@ func main() {
 	defer cancel()
 
 	// connect to postgresql
-	var db *pg.DB
-	if db, err = config.SetupDB(env); err != nil {
+	var db *bun.DB
+	if _, db, err = config.SetupDB(env); err != nil {
 		panic(err)
 	}
 	defer func() {
@@ -66,6 +66,7 @@ func main() {
 		DB:     db,
 		Env:    &env,
 		Redis:  redisClient,
+		Auth:   sessions.NewStore(redisClient, env.Secret),
 		Tokens: tokens.NewStore(redisClient, env.Secret),
 	}
 	app.Auth = anansi.NewSessionStore(env.Secret, env.Scheme, sessionTimeout, app.Tokens)
@@ -73,15 +74,14 @@ func main() {
 	// API router
 	router := chi.NewRouter()
 
-	// setup app middlware
-	middleware.DefaultMiddleware(router, log, middleware.MiddlwareConfig{
+	webpack.Webpack(router, log, webpack.WebpackOps{
 		Environment: env.AppEnv,
 		CORSOrigins: []string{
 			"https://*.tsaron.com",
-			"https://*castui.netlify.app",
 			"http://localhost:8080",
 		},
 	})
+
 	router.NotFound(func(w http.ResponseWriter, _ *http.Request) {
 		http.Error(w, "Whoops!! This route doesn't exist", http.StatusNotFound)
 	})

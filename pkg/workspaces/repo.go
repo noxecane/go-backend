@@ -4,7 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/go-pg/pg/v10"
+	"github.com/jackc/pgerrcode"
+	"github.com/uptrace/bun"
 )
 
 type Workspace struct {
@@ -15,10 +16,10 @@ type Workspace struct {
 }
 
 type Repo struct {
-	db *pg.DB
+	db bun.IDB
 }
 
-func NewRepo(db *pg.DB) *Repo {
+func NewRepo(db bun.IDB) *Repo {
 	return &Repo{db}
 }
 
@@ -27,9 +28,10 @@ func (r *Repo) Create(ctx context.Context, name, email string) (*Workspace, erro
 	workspace := &Workspace{CompanyName: name, EmailAddress: email}
 
 	_, err := r.db.
-		ModelContext(ctx, workspace).
+		NewInsert().
+		Model(workspace).
 		Returning("*").
-		Insert(workspace)
+		Exec(ctx)
 
 	return workspace, err
 }
@@ -37,9 +39,9 @@ func (r *Repo) Create(ctx context.Context, name, email string) (*Workspace, erro
 // Get returns the workspace with the given ID. Returns nil if the workspace doesn't exist
 func (r *Repo) Get(ctx context.Context, id uint) (*Workspace, error) {
 	workspace := &Workspace{ID: id}
-	err := r.db.ModelContext(ctx, workspace).WherePK().Select()
+	_, err := r.db.NewSelect().Model(workspace).WherePK().Exec(ctx)
 
-	if err == pg.ErrNoRows {
+	if err == pgerrcode.ErrNoRows {
 		return nil, nil
 	}
 
@@ -54,11 +56,12 @@ func (r *Repo) ChangeName(ctx context.Context, id uint, name string) (*Workspace
 	}
 
 	_, err := r.db.
-		ModelContext(ctx, workspace).
+		NewUpdate().
+		Model(workspace).
 		WherePK().
 		Column("company_name").
 		Returning("*").
-		Update(workspace)
+		Exec(ctx)
 
 	return workspace, err
 }

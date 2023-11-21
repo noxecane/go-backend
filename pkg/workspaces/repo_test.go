@@ -2,26 +2,27 @@ package workspaces
 
 import (
 	"context"
+	"database/sql"
 	"os"
 	"testing"
 
-	"github.com/go-pg/pg/v10"
-	"github.com/tsaron/anansi"
-	"github.com/tsaron/anansi/postgres"
+	"github.com/noxecane/anansi"
+	"github.com/uptrace/bun"
 	"syreclabs.com/go/faker"
 	"tsaron.com/godview-starter/pkg/config"
 )
 
-var testDB *pg.DB
+var testDB *bun.DB
 
 func afterEach(t *testing.T) {
-	if err := postgres.CleanUpTables(testDB, "workspaces"); err != nil {
+	if _, err := testDB.NewTruncateTable().Table("workspaces").Exec(context.TODO()); err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestMain(m *testing.M) {
 	var err error
+	var sqlDB *sql.DB
 
 	var env config.Env
 	if err = anansi.LoadEnv(&env); err != nil {
@@ -30,14 +31,14 @@ func TestMain(m *testing.M) {
 
 	log := anansi.NewLogger(env.Name)
 
-	if testDB, err = config.SetupDB(env); err != nil {
+	if sqlDB, testDB, err = config.SetupDB(env); err != nil {
 		panic(err)
 	}
 	log.Info().Msg("Successfully connected to postgres")
 
 	code := m.Run()
 
-	if err := testDB.Close(); err != nil {
+	if err := sqlDB.Close(); err != nil {
 		log.Err(err).Msg("Failed to disconnect from postgres cleanly")
 	}
 

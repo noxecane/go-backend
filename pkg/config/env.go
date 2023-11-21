@@ -12,6 +12,7 @@ type Env struct {
 
 	PostgresHost       string `required:"true" split_words:"true"`
 	PostgresPort       int    `required:"true" split_words:"true"`
+	PostgresPoolSize   int    `required:"true" split_words:"true"`
 	PostgresSecureMode bool   `required:"true" split_words:"true"`
 	PostgresUser       string `required:"true" split_words:"true"`
 	PostgresPassword   string `required:"true" split_words:"true"`

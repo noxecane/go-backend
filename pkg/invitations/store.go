@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/tsaron/anansi/tokens"
+	"github.com/noxecane/anansi/tokens"
 )
 
 var ErrExpired = tokens.ErrTokenNotFound

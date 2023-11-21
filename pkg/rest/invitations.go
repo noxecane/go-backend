@@ -2,19 +2,21 @@ package rest
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"regexp"
 	"strings"
 
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
 	ozzo "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/go-ozzo/ozzo-validation/v4/is"
-	"github.com/tsaron/anansi"
+	"github.com/noxecane/anansi/api"
+	sessions "github.com/noxecane/anansi/sessions"
 	"tsaron.com/godview-starter/pkg/config"
 	"tsaron.com/godview-starter/pkg/invitations"
 	"tsaron.com/godview-starter/pkg/notification"
-	"tsaron.com/godview-starter/pkg/sessions"
 	"tsaron.com/godview-starter/pkg/users"
+	"tsaron.com/godview-starter/pkg/workspaces"
 )
 
 var (
@@ -71,12 +73,12 @@ func Invitations(r *chi.Mux, app *config.App, sStore *sessions.Store, mailer not
 
 func extendInvitation(ivStore *invitations.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		token := anansi.StringParam(r, "token")
+		token := api.StringParam(r, "token")
 
 		iv, err := ivStore.Extend(r.Context(), token)
 		if err != nil {
 			if errors.Is(err, invitations.ErrExpired) {
-				panic(anansi.APIError{
+				panic(api.Err{
 					Code:    http.StatusUnauthorized,
 					Message: "Your invitation token has expired",
 				})
@@ -84,21 +86,21 @@ func extendInvitation(ivStore *invitations.Store) http.HandlerFunc {
 			panic(err)
 		}
 
-		anansi.SendSuccess(r, w, iv)
+		api.Success(r, w, iv)
 	}
 }
 
-func acceptInvitation(ivStore *invitations.Store, uRepo *users.Repo, sStore *sessions.Store) http.HandlerFunc {
+func acceptInvitation(ivStore *invitations.Store, uRepo *users.Repo, wRepo *workspaces.Repo, sStore *sessions.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var dto RegistrationDTO
-		anansi.ReadJSON(r, &dto)
+		api.ReadJSON(r, &dto)
 
-		token := anansi.StringParam(r, "token")
+		token := api.StringParam(r, "token")
 
 		iv, err := ivStore.View(r.Context(), token)
 		if err != nil {
 			if errors.Is(err, invitations.ErrExpired) {
-				panic(anansi.APIError{
+				panic(api.Err{
 					Code:    http.StatusUnauthorized,
 					Message: "Your invitation token has expired",
 				})
@@ -114,7 +116,7 @@ func acceptInvitation(ivStore *invitations.Store, uRepo *users.Repo, sStore *ses
 		})
 		if err != nil {
 			if errors.Is(err, users.ErrExistingPhoneNumber) {
-				panic(anansi.APIError{
+				panic(api.Err{
 					Code:    http.StatusConflict,
 					Message: err.Error(),
 				})
@@ -127,29 +129,44 @@ func acceptInvitation(ivStore *invitations.Store, uRepo *users.Repo, sStore *ses
 			panic(err)
 		}
 
-		session, err := sStore.Create(r.Context(), user)
+		workspace, err := wRepo.Get(r.Context(), user.Workspace)
+		if err != nil {
+			panic(api.Err{
+				Code:    http.StatusForbidden,
+				Message: "This workspace does not exist",
+			})
+		}
+
+		session := session{
+			Workspace:   user.Workspace,
+			User:        user.ID,
+			Role:        user.Role,
+			CompanyName: workspace.CompanyName,
+			FullName:    fmt.Sprintf("%s %s", user.FirstName, user.LastName),
+		}
+
 		if err != nil {
 			panic(err)
 		}
 
-		anansi.SendSuccess(r, w, session)
+		api.Success(r, w, session)
 	}
 }
 
-func inviteUsers(auth *anansi.SessionStore, uRepo *users.Repo, ivStore *invitations.Store, env *config.Env, mailer notification.Mailer) http.HandlerFunc {
+func inviteUsers(auth *sessions.Store, uRepo *users.Repo, ivStore *invitations.Store, env *config.Env, mailer notification.Mailer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var session sessions.Session
-		auth.Load(r, &session)
+		var session session
+		api.Load(auth, r, &session)
 
 		if session.Role == "member" {
-			panic(anansi.APIError{
+			panic(api.Err{
 				Code:    http.StatusForbidden,
 				Message: "You are not allowed to invite other users",
 			})
 		}
 
 		var dtos []InvitationDTO
-		anansi.ReadJSON(r, &dtos)
+		api.ReadJSON(r, &dtos)
 
 		// create the invited users
 		var reqs []users.UserRequest
@@ -162,7 +179,7 @@ func inviteUsers(auth *anansi.SessionStore, uRepo *users.Repo, ivStore *invitati
 		ux, err := uRepo.CreateMany(r.Context(), session.Workspace, reqs)
 		if err != nil {
 			if errMail, ok := err.(users.ErrEmail); ok {
-				panic(anansi.APIError{
+				panic(api.Err{
 					Code:    http.StatusConflict,
 					Message: errMail.Error(),
 				})
@@ -186,6 +203,6 @@ func inviteUsers(auth *anansi.SessionStore, uRepo *users.Repo, ivStore *invitati
 			ivs = append(ivs, iv)
 		}
 
-		anansi.SendSuccess(r, w, ivs)
+		api.Success(r, w, ivs)
 	}
 }
