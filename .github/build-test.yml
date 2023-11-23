@@ -1,0 +1,81 @@
+name: Build & Test
+
+on:
+  push:
+    branches-ignore:
+      - master
+      - staging
+
+jobs:
+  build-test:
+
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_DB: castdb
+          POSTGRES_USER: workspaces
+          POSTGRES_PASSWORD: mypassword
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - name: Checkout source code
+      uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21.x'
+    
+    - name: Build and test
+      run: |
+        go mod tidy
+        go mod vendor
+        go vet ./...
+        go build ./...
+        go test -v ./... | sed ''/PASS/s//$(printf "\033[32mPASS\033[0m")/'' | sed ''/FAIL/s//$(printf "\033[31mFAIL\033[0m")/''
+      env:
+        GOOS: linux
+        GOARCH: amd64
+        GOFLAGS: -mod=vendor
+        CGO_ENABLED: 0
+        APP_ENV: dev
+        NAME: godview-starter
+        PORT: 3008
+        SCHEME: Cast
+        SECRET: some-32-char-secret
+        SESSION_TIMEOUT: 24h
+        HEADLESS_TIMEOUT: 30s
+        REDIS_HOST: localhost
+        REDIS_PORT: 6379
+        POSTGRES_HOST: localhost
+        POSTGRES_DATABASE: castdb
+        POSTGRES_PORT: 5432
+        POSTGRES_USER: workspaces
+        POSTGRES_PASSWORD: mypassword
+        POSTGRES_SECURE_MODE: false
+        POSTGRES_POOL_SIZE: 2
+        MAIL_SENDER: Tsaron Tech
+        NOTIFY_EMAIL: notify@tsaron.com
+        POSTMASTER_EMAIL: postmaster@tsaron.com
+        CLIENT_OWNER_PAGE: http://localhost:8080/onboarding/invitations/owner
+        CLIENT_USER_PAGE: http://localhost:8080/onboarding/invitations
+        CLIENT_RESET_PAGE: http://localhost:8080/reset-password
+        SENDGRID_KEY: some-long-maybe-32-char-secret
