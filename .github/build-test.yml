@@ -72,7 +72,7 @@ jobs:
         POSTGRES_PASSWORD: mypassword
         POSTGRES_SECURE_MODE: false
         POSTGRES_POOL_SIZE: 2
-        MAIL_SENDER: Tsaron Tech
+        MAIL_SENDER: Noxecane
         NOTIFY_EMAIL: notify@example.com
         POSTMASTER_EMAIL: postmaster@example.com
         CLIENT_OWNER_PAGE: http://localhost:8080/onboarding/invitations/owner
