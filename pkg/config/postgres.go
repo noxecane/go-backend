@@ -2,6 +2,7 @@ package config
 
 import (
 	"context"
+	"crypto/tls"
 	"database/sql"
 	"fmt"
 	"path/filepath"
@@ -11,6 +12,7 @@ import (
 	"github.com/golang-migrate/migrate/v4/database"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/uptrace/bun"
@@ -53,11 +55,8 @@ func migrateDB(dir string, db *sql.DB) error {
 
 func SetupDB(env Env) (*sql.DB, *bun.DB, error) {
 	sslMode := "allow"
-	// skipTLSVerification := true
-
 	if env.PostgresSecureMode {
 		sslMode = "require"
-		// skipTLSVerification = false
 	}
 
 	formatStr := "postgres://%s:%s@%s:%d/%s?application_name=%s&sslmode=%s&pool_max_conns=%d"
@@ -65,13 +64,21 @@ func SetupDB(env Env) (*sql.DB, *bun.DB, error) {
 		env.PostgresUser, env.PostgresPassword, env.PostgresHost,
 		env.PostgresPort, env.PostgresDatabase, env.Name, sslMode, env.PostgresPoolSize,
 	)
-	config, _ := pgxpool.ParseConfig(connStr)
+	config, err := pgxpool.ParseConfig(connStr)
+	if err != nil {
+		return nil, nil, err
+	}
 	dbpool, err := pgxpool.NewWithConfig(context.Background(), config)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	sqldb := stdlib.OpenDBFromPool(dbpool)
+	sqldb := stdlib.OpenDBFromPool(dbpool, stdlib.OptionBeforeConnect(func(ctx context.Context, cc *pgx.ConnConfig) error {
+		if !env.PostgresSecureMode {
+			cc.TLSConfig = &tls.Config{InsecureSkipVerify: true}
+		}
+		return nil
+	}))
 	db := bun.NewDB(sqldb, pgdialect.New())
 
 	if env.PostgresDebug {
