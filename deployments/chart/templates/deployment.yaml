@@ -1,17 +1,17 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "godview-starter.fullname" . }}
+  name: {{ include "go-starter.fullname" . }}
   labels:
-    app.kubernetes.io/name: {{ include "godview-starter.name" . }}
-    helm.sh/chart: {{ include "godview-starter.chart" . }}
+    app.kubernetes.io/name: {{ include "go-starter.name" . }}
+    helm.sh/chart: {{ include "go-starter.chart" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app.kubernetes.io/name: {{ include "godview-starter.name" . }}
+      app.kubernetes.io/name: {{ include "go-starter.name" . }}
       app.kubernetes.io/instance: {{ .Release.Name }}
   template:
     metadata:
@@ -21,7 +21,7 @@ spec:
         prometheus.io/port: "80"
         updatedAt: {{ now | quote }}
       labels:
-        app.kubernetes.io/name: {{ include "godview-starter.name" . }}
+        app.kubernetes.io/name: {{ include "go-starter.name" . }}
         app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
       containers:
@@ -52,7 +52,7 @@ spec:
             - name: {{ $env | upper }}
               valueFrom:
                 secretKeyRef:
-                  name: godview-starter
+                  name: go-starter
                   key: {{ $env }}
             {{- end }}
           livenessProbe:

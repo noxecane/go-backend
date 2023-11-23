@@ -6,10 +6,11 @@ import (
 	"os"
 	"testing"
 
+	"noxecane/go-starter/pkg/config"
+
 	"github.com/noxecane/anansi"
 	"github.com/uptrace/bun"
 	"syreclabs.com/go/faker"
-	"tsaron.com/godview-starter/pkg/config"
 )
 
 var testDB *bun.DB

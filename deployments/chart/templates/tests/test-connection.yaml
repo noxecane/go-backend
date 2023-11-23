@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: "{{ include "godview-starter.fullname" . }}-test-connection"
+  name: "{{ include "go-starter.fullname" . }}-test-connection"
   labels:
-    app.kubernetes.io/name: {{ include "godview-starter.name" . }}
-    helm.sh/chart: {{ include "godview-starter.chart" . }}
+    app.kubernetes.io/name: {{ include "go-starter.name" . }}
+    helm.sh/chart: {{ include "go-starter.chart" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
   annotations:
@@ -14,5 +14,5 @@ spec:
     - name: wget
       image: busybox
       command: ['wget']
-      args: ['{{ include "godview-starter.fullname" . }}:{{ .Values.service.port }}']
+      args: ['{{ include "go-starter.fullname" . }}:{{ .Values.service.port }}']
   restartPolicy: Never

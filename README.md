@@ -1,1 +1,1 @@
-# godview-starter
+# go-starter

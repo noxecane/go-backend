@@ -8,8 +8,6 @@ type Env struct {
 	Scheme string `required:"true"`
 	Secret []byte `required:"true"`
 
-	TemplateDir string `required:"true" split_words:"true"`
-
 	PostgresHost       string `required:"true" split_words:"true"`
 	PostgresPort       int    `required:"true" split_words:"true"`
 	PostgresPoolSize   int    `required:"true" split_words:"true"`

@@ -3,11 +3,11 @@ package notification
 import (
 	"bytes"
 	"html/template"
-	"io/ioutil"
+	"os"
 )
 
 func FileTemplate(path string) *template.Template {
-	raw, err := ioutil.ReadFile(path)
+	raw, err := os.ReadFile(path)
 	if err != nil {
 		panic(err)
 	}

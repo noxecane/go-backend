@@ -3,7 +3,7 @@ package invitations
 import (
 	"fmt"
 
-	"tsaron.com/godview-starter/pkg/notification"
+	"noxecane/go-starter/pkg/notification"
 )
 
 func SendInvitation(mailer notification.Mailer, route string, iv Invitation) error {

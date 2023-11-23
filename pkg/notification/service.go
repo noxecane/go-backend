@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"html/template"
 	"io/ioutil"
+	"noxecane/go-starter/pkg/config"
+	"path/filepath"
 
 	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
@@ -34,7 +36,6 @@ type MailOpts struct {
 	Sender          string
 	NotifyEmail     string
 	PostmasterEmail string
-	TemplatePath    string
 }
 
 type Mailer interface {
@@ -50,7 +51,7 @@ func New(opts MailOpts) Mailer {
 	templates := make(map[string]*template.Template)
 
 	for _, n := range templatesNames {
-		path := fmt.Sprintf("%s/%s.html", opts.TemplatePath, n)
+		path := filepath.Join(config.GetPackagePath(), "templates", fmt.Sprintf("%s.html", n))
 		templates[n] = FileTemplate(path)
 	}
 

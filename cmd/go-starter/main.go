@@ -6,6 +6,10 @@ import (
 	"net/http"
 	"time"
 
+	"noxecane/go-starter/pkg/config"
+	"noxecane/go-starter/pkg/notification"
+	"noxecane/go-starter/pkg/rest"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/noxecane/anansi"
 	"github.com/noxecane/anansi/sessions"
@@ -13,9 +17,6 @@ import (
 	"github.com/noxecane/anansi/webpack"
 	"github.com/redis/go-redis/v9"
 	"github.com/uptrace/bun"
-	"tsaron.com/godview-starter/pkg/config"
-	"tsaron.com/godview-starter/pkg/notification"
-	"tsaron.com/godview-starter/pkg/rest"
 )
 
 func main() {
@@ -76,7 +77,7 @@ func main() {
 	webpack.Webpack(router, log, webpack.WebpackOpts{
 		Environment: env.AppEnv,
 		CORSOrigins: []string{
-			"https://*.tsaron.com",
+			"https://*.noxecane",
 			"http://localhost:8080",
 		},
 	})
@@ -91,7 +92,6 @@ func main() {
 		Sender:          env.MailSender,
 		NotifyEmail:     env.NotifyEmail,
 		PostmasterEmail: env.PostmasterEmail,
-		TemplatePath:    env.TemplateDir,
 	})
 
 	// setup routes
