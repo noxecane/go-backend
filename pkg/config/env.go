@@ -17,6 +17,7 @@ type Env struct {
 	PostgresUser       string `required:"true" split_words:"true"`
 	PostgresPassword   string `required:"true" split_words:"true"`
 	PostgresDatabase   string `required:"true" split_words:"true"`
+	PostgresDebug      bool   `default:"false" split_words:"true"`
 
 	RedisHost     string `required:"true" split_words:"true"`
 	RedisPort     int    `required:"true" split_words:"true"`

@@ -14,7 +14,7 @@ type App struct {
 	DB     *bun.DB
 	Redis  *redis.Client
 	Auth   *sessions.Store
-	Tokens *tokens.Store
+	Tokens tokens.Store
 }
 
 func HealthChecker(app *App) http.HandlerFunc {

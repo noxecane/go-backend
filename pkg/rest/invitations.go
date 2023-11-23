@@ -60,14 +60,15 @@ func (t *RegistrationDTO) Validate() error {
 	)
 }
 
-func Invitations(r *chi.Mux, app *config.App, sStore *sessions.Store, mailer notification.Mailer) {
+func Invitations(r *chi.Mux, app *config.App, mailer notification.Mailer) {
 	ivStore := invitations.NewStore(app.Tokens)
 	uRepo := users.NewRepo(app.DB)
+	wRepo := workspaces.NewRepo(app.DB)
 
 	r.Route("/invitations", func(r chi.Router) {
 		r.Post("/", inviteUsers(app.Auth, uRepo, ivStore, app.Env, mailer))
 		r.Patch("/{token}/extend", extendInvitation(ivStore))
-		r.Patch("/{token}/accept", acceptInvitation(ivStore, uRepo, sStore))
+		r.Patch("/{token}/accept", acceptInvitation(ivStore, uRepo, wRepo, app.Auth))
 	})
 }
 
@@ -178,14 +179,7 @@ func inviteUsers(auth *sessions.Store, uRepo *users.Repo, ivStore *invitations.S
 		}
 		ux, err := uRepo.CreateMany(r.Context(), session.Workspace, reqs)
 		if err != nil {
-			if errMail, ok := err.(users.ErrEmail); ok {
-				panic(api.Err{
-					Code:    http.StatusConflict,
-					Message: errMail.Error(),
-				})
-			} else {
-				panic(err)
-			}
+			panic(err)
 		}
 
 		// send them mail invitations

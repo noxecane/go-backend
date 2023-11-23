@@ -16,7 +16,6 @@ import (
 	"tsaron.com/godview-starter/pkg/config"
 	"tsaron.com/godview-starter/pkg/notification"
 	"tsaron.com/godview-starter/pkg/rest"
-	"tsaron.com/godview-starter/pkg/workspaces"
 )
 
 func main() {
@@ -66,15 +65,15 @@ func main() {
 		DB:     db,
 		Env:    &env,
 		Redis:  redisClient,
-		Auth:   sessions.NewStore(redisClient, env.Secret),
 		Tokens: tokens.NewStore(redisClient, env.Secret),
 	}
-	app.Auth = anansi.NewSessionStore(env.Secret, env.Scheme, sessionTimeout, app.Tokens)
+
+	app.Auth = sessions.NewStore(env.Secret, env.Scheme, sessionTimeout, app.Tokens)
 
 	// API router
 	router := chi.NewRouter()
 
-	webpack.Webpack(router, log, webpack.WebpackOps{
+	webpack.Webpack(router, log, webpack.WebpackOpts{
 		Environment: env.AppEnv,
 		CORSOrigins: []string{
 			"https://*.tsaron.com",
@@ -87,7 +86,6 @@ func main() {
 	})
 
 	// dependency factory
-	sStore := sessions.NewStore(app.Tokens, workspaces.NewRepo(db))
 	noty := notification.New(notification.MailOpts{
 		Key:             env.SendgridKey,
 		Sender:          env.MailSender,
@@ -97,7 +95,7 @@ func main() {
 	})
 
 	// setup routes
-	rest.Invitations(router, app, sStore, noty)
+	rest.Invitations(router, app, noty)
 
 	// mount API on app router
 	appRouter := chi.NewRouter()

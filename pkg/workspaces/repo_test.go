@@ -15,7 +15,7 @@ import (
 var testDB *bun.DB
 
 func afterEach(t *testing.T) {
-	if _, err := testDB.NewTruncateTable().Table("workspaces").Exec(context.TODO()); err != nil {
+	if _, err := testDB.NewTruncateTable().Table("workspaces", "users").Cascade().Exec(context.TODO()); err != nil {
 		t.Fatal(err)
 	}
 }

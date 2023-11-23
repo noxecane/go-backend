@@ -2,14 +2,14 @@ package workspaces
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
-	"github.com/jackc/pgerrcode"
 	"github.com/uptrace/bun"
 )
 
 type Workspace struct {
-	ID           uint      `json:"id"`
+	ID           uint      `bun:",pk" json:"id"`
 	CreatedAt    time.Time `json:"created_at"`
 	CompanyName  string    `json:"company_name"`
 	EmailAddress string    `json:"email_address"`
@@ -30,6 +30,7 @@ func (r *Repo) Create(ctx context.Context, name, email string) (*Workspace, erro
 	_, err := r.db.
 		NewInsert().
 		Model(workspace).
+		Column("company_name", "email_address").
 		Returning("*").
 		Exec(ctx)
 
@@ -39,9 +40,9 @@ func (r *Repo) Create(ctx context.Context, name, email string) (*Workspace, erro
 // Get returns the workspace with the given ID. Returns nil if the workspace doesn't exist
 func (r *Repo) Get(ctx context.Context, id uint) (*Workspace, error) {
 	workspace := &Workspace{ID: id}
-	_, err := r.db.NewSelect().Model(workspace).WherePK().Exec(ctx)
+	err := r.db.NewSelect().Model(workspace).WherePK().Scan(ctx)
 
-	if err == pgerrcode.ErrNoRows {
+	if err == sql.ErrNoRows {
 		return nil, nil
 	}
 

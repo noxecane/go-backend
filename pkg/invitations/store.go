@@ -17,10 +17,10 @@ type Invitation struct {
 }
 
 type Store struct {
-	tStore *tokens.Store
+	tStore tokens.Store
 }
 
-func NewStore(tStore *tokens.Store) *Store {
+func NewStore(tStore tokens.Store) *Store {
 	return &Store{tStore}
 }
 
