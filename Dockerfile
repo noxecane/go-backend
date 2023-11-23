@@ -1,4 +1,4 @@
-FROM golang:1.14-alpine as builder
+FROM golang:1.21-alpine3.18 as builder
 
 # Ensure ca-certficates are up to date
 RUN update-ca-certificates
@@ -6,17 +6,15 @@ RUN update-ca-certificates
 WORKDIR /app
 
 COPY go.mod go.sum ./
-
 ENV GOOS=linux
-
-RUN go mod download & go mod verify
+RUN go mod download && go mod verify
 
 COPY . .
 
 # Build the binary
-RUN CGO_ENABLED=0 go build -ldflags="-w -s" -o /app/server ./cmd/godview-starter/main.go
+RUN CGO_ENABLED=0 go build -ldflags="-w -s" -o /app/server ./cmd/go-starter/main.go
 
-FROM gcr.io/distroless/base
+FROM gcr.io/distroless/static-debian11
 
 WORKDIR /app
 
