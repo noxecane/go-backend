@@ -2,11 +2,13 @@ package users
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"time"
 
-	"github.com/go-pg/pg/v10"
-	"github.com/tsaron/anansi/postgres"
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/uptrace/bun"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -16,13 +18,8 @@ const (
 	RoleOwner  = "owner"
 )
 
-var ErrExistingPhoneNumber = errors.New("This phone number is already in use")
-
-type ErrEmail string
-
-func (e ErrEmail) Error() string {
-	return string(e) + " has already been registered"
-}
+var ErrExistingPhoneNumber = errors.New("tphone number already in use")
+var ErrExistingEmail = errors.New("email already in use")
 
 type Registration struct {
 	FirstName   string `json:"first_name"`
@@ -32,7 +29,7 @@ type Registration struct {
 }
 
 type User struct {
-	ID           uint      `json:"id"`
+	ID           uint      `bun:",pk" json:"id"`
 	CreatedAt    time.Time `json:"created_at"`
 	FirstName    string    `json:"first_name,omitempty"`
 	LastName     string    `json:"last_name,omitempty"`
@@ -49,10 +46,10 @@ type UserRequest struct {
 }
 
 type Repo struct {
-	db *pg.DB
+	db bun.IDB
 }
 
-func NewRepo(db *pg.DB) *Repo {
+func NewRepo(db bun.IDB) *Repo {
 	return &Repo{db}
 }
 
@@ -64,12 +61,14 @@ func (r *Repo) Create(ctx context.Context, workspace uint, req UserRequest) (*Us
 	}
 
 	_, err := r.db.
-		ModelContext(ctx, user).
+		NewInsert().
+		Model(user).
+		Column("email_address", "role", "workspace").
 		Returning("*").
-		Insert(user)
+		Exec(ctx)
 
-	if err != nil && postgres.ErrDuplicate.MatchString(err.Error()) {
-		return nil, ErrEmail(req.EmailAddress)
+	if err, ok := err.(*pgconn.PgError); ok && err.Code == pgerrcode.UniqueViolation {
+		return nil, ErrExistingEmail
 	}
 
 	return user, err
@@ -87,12 +86,14 @@ func (r *Repo) CreateMany(ctx context.Context, workspace uint, reqs []UserReques
 	}
 
 	_, err := r.db.
-		ModelContext(ctx, &users).
+		NewInsert().
+		Model(&users).
+		Column("email_address", "role", "workspace").
 		Returning("*").
-		Insert(&users)
+		Exec(ctx)
 
-	if err != nil && postgres.ErrDuplicate.MatchString(err.Error()) {
-		return nil, ErrEmail("One of the users")
+	if err, ok := err.(*pgconn.PgError); ok && err.Code == pgerrcode.UniqueViolation {
+		return nil, ErrExistingEmail
 	}
 
 	return users, err
@@ -112,13 +113,14 @@ func (r *Repo) Register(ctx context.Context, email string, reg Registration) (*U
 	}
 
 	_, err = r.db.
-		ModelContext(ctx, user).
+		NewUpdate().
+		Model(user).
 		Where("email_address = ?", email).
 		Column("first_name", "last_name", "phone_number", "password").
 		Returning("*").
-		Update(user)
+		Exec(ctx)
 
-	if err != nil && postgres.ErrDuplicate.MatchString(err.Error()) {
+	if err, ok := err.(*pgconn.PgError); ok && err.Code == pgerrcode.UniqueViolation {
 		return nil, ErrExistingPhoneNumber
 	}
 
@@ -133,14 +135,15 @@ func (r *Repo) ChangePassword(ctx context.Context, wkID, id uint, password strin
 
 	user := &User{Password: pwdBytes}
 	_, err = r.db.
-		ModelContext(ctx, user).
+		NewUpdate().
+		Model(user).
 		Where("id = ?", id).
 		Where("workspace = ?", wkID).
 		Column("password").
 		Returning("*").
-		Update(user)
+		Exec(ctx)
 
-	if err == pg.ErrNoRows {
+	if err == sql.ErrNoRows {
 		return nil, nil
 	}
 

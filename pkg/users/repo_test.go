@@ -2,27 +2,29 @@ package users
 
 import (
 	"context"
+	"database/sql"
 	"os"
 	"testing"
 
-	"github.com/go-pg/pg/v10"
-	"github.com/tsaron/anansi"
-	"github.com/tsaron/anansi/postgres"
-	"syreclabs.com/go/faker"
+	"github.com/jaswdr/faker"
+	"github.com/noxecane/anansi"
+	"github.com/uptrace/bun"
 	"tsaron.com/godview-starter/pkg/config"
 	"tsaron.com/godview-starter/pkg/workspaces"
 )
 
-var testDB *pg.DB
+var testDB *bun.DB
+var fake = faker.New()
 
 func afterEach(t *testing.T) {
-	if err := postgres.CleanUpTables(testDB, "users", "workspaces"); err != nil {
+	if _, err := testDB.NewTruncateTable().Table("workspaces", "users").Cascade().Exec(context.TODO()); err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestMain(m *testing.M) {
 	var err error
+	var sqlDB *sql.DB
 
 	var env config.Env
 	if err = anansi.LoadEnv(&env); err != nil {
@@ -31,14 +33,14 @@ func TestMain(m *testing.M) {
 
 	log := anansi.NewLogger(env.Name)
 
-	if testDB, err = config.SetupDB(env); err != nil {
+	if sqlDB, testDB, err = config.SetupDB(env); err != nil {
 		panic(err)
 	}
 	log.Info().Msg("Successfully connected to postgres")
 
 	code := m.Run()
 
-	if err := testDB.Close(); err != nil {
+	if err := sqlDB.Close(); err != nil {
 		log.Err(err).Msg("Failed to disconnect from postgres cleanly")
 	}
 
@@ -52,12 +54,12 @@ func TestRepoCreate(t *testing.T) {
 	ctx := context.TODO()
 
 	wkRepo := workspaces.NewRepo(testDB)
-	wk, err := wkRepo.Create(ctx, faker.Company().Name(), faker.Internet().Email())
+	wk, err := wkRepo.Create(ctx, fake.Company().Name(), fake.Internet().Email())
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	req := UserRequest{faker.Internet().Email(), faker.Fetch("name.title.job")}
+	req := UserRequest{fake.Internet().Email(), fake.Company().JobTitle()}
 	_, err = repo.Create(ctx, wk.ID, req)
 	if err != nil {
 		t.Fatal(err)
@@ -68,10 +70,7 @@ func TestRepoCreate(t *testing.T) {
 		t.Fatalf("Expected duplicate create to fail")
 	}
 
-	switch err.(type) {
-	case ErrEmail:
-		// no op
-	default:
+	if err != ErrExistingEmail {
 		t.Errorf("Expected error to be of type errEmail, got %T", err)
 	}
 }
@@ -83,19 +82,19 @@ func TestRepoCreateMany(t *testing.T) {
 	ctx := context.TODO()
 
 	wkRepo := workspaces.NewRepo(testDB)
-	wk, err := wkRepo.Create(ctx, faker.Company().Name(), faker.Internet().Email())
+	wk, err := wkRepo.Create(ctx, fake.Company().Name(), fake.Internet().Email())
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	req := UserRequest{faker.Internet().Email(), faker.Fetch("name.title.job")}
+	req := UserRequest{fake.Internet().Email(), fake.Company().JobTitle()}
 	_, err = repo.Create(ctx, wk.ID, req)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	reqs := []UserRequest{
-		{faker.Internet().Email(), faker.Fetch("name.title.job")},
+		{fake.Internet().Email(), fake.Company().JobTitle()},
 		req,
 	}
 	_, err = repo.CreateMany(ctx, wk.ID, reqs)
@@ -103,10 +102,7 @@ func TestRepoCreateMany(t *testing.T) {
 		t.Fatalf("Expected duplicate create to fail")
 	}
 
-	switch err.(type) {
-	case ErrEmail:
-		// no op
-	default:
+	if err != ErrExistingEmail {
 		t.Errorf("Expected error to be of type ErrEmail, got %T: %v", err, err)
 	}
 }
@@ -118,14 +114,14 @@ func TestRepoRegister(t *testing.T) {
 	ctx := context.TODO()
 
 	wkRepo := workspaces.NewRepo(testDB)
-	wk, err := wkRepo.Create(ctx, faker.Company().Name(), faker.Internet().Email())
+	wk, err := wkRepo.Create(ctx, fake.Company().Name(), fake.Internet().Email())
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	reqs := []UserRequest{
-		{faker.Internet().Email(), faker.Fetch("name.title.job")},
-		{faker.Internet().Email(), faker.Fetch("name.title.job")},
+		{fake.Internet().Email(), fake.Company().JobTitle()},
+		{fake.Internet().Email(), fake.Company().JobTitle()},
 	}
 	_, err = repo.CreateMany(ctx, wk.ID, reqs)
 	if err != nil {
@@ -133,10 +129,10 @@ func TestRepoRegister(t *testing.T) {
 	}
 
 	reg := Registration{
-		faker.Name().FirstName(),
-		faker.Name().LastName(),
-		faker.Lorem().Word(),
-		faker.PhoneNumber().PhoneNumber(),
+		fake.Person().FirstName(),
+		fake.Person().LastName(),
+		fake.Lorem().Word(),
+		fake.Phone().Number(),
 	}
 
 	_, err = repo.Register(ctx, reqs[0].EmailAddress, reg)
@@ -145,9 +141,9 @@ func TestRepoRegister(t *testing.T) {
 	}
 
 	reg2 := Registration{
-		faker.Name().FirstName(),
-		faker.Name().LastName(),
-		faker.Lorem().Word(),
+		fake.Person().FirstName(),
+		fake.Person().LastName(),
+		fake.Lorem().Word(),
 		reg.PhoneNumber,
 	}
 	_, err = repo.Register(ctx, reqs[1].EmailAddress, reg2)

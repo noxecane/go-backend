@@ -3,25 +3,25 @@ package config
 import (
 	"net/http"
 
-	"github.com/go-pg/pg/v10"
-	"github.com/go-redis/redis/v8"
-	"github.com/tsaron/anansi"
-	"github.com/tsaron/anansi/tokens"
+	"github.com/noxecane/anansi/sessions"
+	"github.com/noxecane/anansi/tokens"
+	"github.com/redis/go-redis/v9"
+	"github.com/uptrace/bun"
 )
 
 type App struct {
 	Env    *Env
-	DB     *pg.DB
+	DB     *bun.DB
 	Redis  *redis.Client
-	Tokens *tokens.Store
-	Auth   *anansi.SessionStore
+	Auth   *sessions.Store
+	Tokens tokens.Store
 }
 
 func HealthChecker(app *App) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
 
-		if err := app.DB.Ping(r.Context()); err != nil {
+		if err := app.DB.Ping(); err != nil {
 			http.Error(w, "Could not reach postgres", http.StatusInternalServerError)
 			return
 		}

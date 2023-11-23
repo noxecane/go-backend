@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/tsaron/anansi/tokens"
+	"github.com/noxecane/anansi/tokens"
 )
 
 var ErrExpired = tokens.ErrTokenNotFound
@@ -17,10 +17,10 @@ type Invitation struct {
 }
 
 type Store struct {
-	tStore *tokens.Store
+	tStore tokens.Store
 }
 
-func NewStore(tStore *tokens.Store) *Store {
+func NewStore(tStore tokens.Store) *Store {
 	return &Store{tStore}
 }
 
