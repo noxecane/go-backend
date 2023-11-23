@@ -7,16 +7,17 @@ import (
 	"regexp"
 	"strings"
 
+	"noxecane/go-starter/pkg/config"
+	"noxecane/go-starter/pkg/invitations"
+	"noxecane/go-starter/pkg/notification"
+	"noxecane/go-starter/pkg/users"
+	"noxecane/go-starter/pkg/workspaces"
+
 	"github.com/go-chi/chi/v5"
 	ozzo "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/go-ozzo/ozzo-validation/v4/is"
 	"github.com/noxecane/anansi/api"
 	sessions "github.com/noxecane/anansi/sessions"
-	"tsaron.com/godview-starter/pkg/config"
-	"tsaron.com/godview-starter/pkg/invitations"
-	"tsaron.com/godview-starter/pkg/notification"
-	"tsaron.com/godview-starter/pkg/users"
-	"tsaron.com/godview-starter/pkg/workspaces"
 )
 
 var (

@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"time"
 
+	"noxecane/go-starter/pkg/notification"
+
 	"github.com/noxecane/anansi/tokens"
 	"golang.org/x/crypto/bcrypt"
-	"tsaron.com/godview-starter/pkg/notification"
 )
 
 var (

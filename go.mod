@@ -1,4 +1,4 @@
-module tsaron.com/godview-starter
+module noxecane/go-starter
 
 go 1.21
 

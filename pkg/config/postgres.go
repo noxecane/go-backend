@@ -20,7 +20,10 @@ import (
 	"github.com/uptrace/bun/extra/bundebug"
 )
 
-func getPackagePath() string {
+// GetPackagePath returns the directory of the package currently running this program.
+// Bare in mind it's not the same as the CWD of the bin. Returns empty string if
+// the program running does not follownig the pkg dir format
+func GetPackagePath() string {
 	_, sourceCode, _, _ := runtime.Caller(0)
 	for dir, last := filepath.Split(sourceCode); dir != ""; dir, last = filepath.Split(filepath.Clean(dir)) {
 		if last == "pkg" {
@@ -89,7 +92,7 @@ func SetupDB(env Env) (*sql.DB, *bun.DB, error) {
 	sqldb.SetMaxOpenConns(maxOpenConns)
 	sqldb.SetMaxIdleConns(maxOpenConns)
 
-	if err := migrateDB(filepath.Join(getPackagePath(), "sql"), sqldb); err != nil {
+	if err := migrateDB(filepath.Join(GetPackagePath(), "sql"), sqldb); err != nil {
 		return sqldb, db, err
 	}
 
